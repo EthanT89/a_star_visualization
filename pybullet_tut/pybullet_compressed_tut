@@ -1,0 +1,128 @@
+# === PyBullet Complete Tutorial ===
+# Author: Ethan Thornberg
+# Comprehensive Guide to PyBullet Functions and Methods
+
+import pybullet as p
+import pybullet_data
+import time
+
+# Setup: Connect to PyBullet and load initial objects
+p.connect(p.GUI)
+p.setAdditionalSearchPath(pybullet_data.getDataPath())  # Load PyBullet's built-in data path
+p.loadURDF("plane.urdf")  # Load a simple plane for the ground
+robot_id = p.loadURDF("r2d2.urdf", [0, 0, 1])  # Load the R2D2 robot
+p.setGravity(0, 0, -9.81)  # Set gravity to act in the negative z-direction
+
+# === Part 1: Basic Setup and Understanding URDFs ===
+# URDF (Unified Robot Description Format) files define the model structure, including links and joints.
+# Use p.loadURDF() to load models. These models contain details about the physical and visual properties of the robot.
+# Example: Load multiple objects, such as custom robots or obstacles, to create a warehouse scenario.
+
+# === Part 2: Simulation Steps and Time Management ===
+# p.stepSimulation() advances the physics engine by one step. Use time.sleep() to control simulation speed.
+# Example: Run a simple simulation loop
+for _ in range(240):  # Run for 240 steps (about 1 second if running at 240 Hz)
+    p.stepSimulation()
+    time.sleep(1/240)  # Sleep to match real-time speed
+
+# === Part 3: Loading and Manipulating Rigid Bodies ===
+# Use p.loadURDF to load static and movable objects. Customize the initial positions and orientations.
+# Example: Load boxes and shelves to represent a warehouse layout
+box_id = p.loadURDF("cube_small.urdf", [2, 2, 0.5])
+shelf_id = p.loadURDF("table.urdf", [3, 3, 0])
+
+# === Part 4: Setting Up Sensors for Navigation ===
+# Simulate sensors for pathfinding, such as cameras and laser scanners. This is crucial for warehouse robots.
+# Example: Use a virtual camera to capture the environment
+view_matrix = p.computeViewMatrix([1, 1, 3], [0, 0, 0], [0, 0, 1])
+proj_matrix = p.computeProjectionMatrixFOV(60, 1.0, 0.1, 100)
+width, height, rgb_img, _, _ = p.getCameraImage(640, 480, view_matrix, proj_matrix)
+# Use ray casting to detect obstacles and calculate distances
+
+# === Part 5: Controlling Robots with Joints ===
+# Warehouse robots often have multiple joints for precise control. Use p.setJointMotorControl2 for various control modes.
+# POSITION_CONTROL: Move joints to specific angles or positions.
+# VELOCITY_CONTROL: Set the speed of joint movement.
+# TORQUE_CONTROL: Apply specific forces or torques to joints.
+# Example: Control a wheel joint to move the robot
+p.setJointMotorControl2(
+    bodyUniqueId=robot_id,
+    jointIndex=0,  # Index of the joint you want to control
+    controlMode=p.VELOCITY_CONTROL,
+    targetVelocity=1.0,  # Move with a velocity of 1.0 rad/s
+    force=100  # Maximum force to apply
+)
+
+# === Part 6: Pathfinding and Obstacle Avoidance ===
+# Use algorithms like A* for pathfinding and p.rayTest for obstacle detection.
+# Example: Perform a ray test to detect obstacles in a given direction
+start_pos = [0, 0, 1]
+end_pos = [5, 5, 1]
+hit_info = p.rayTest(start_pos, end_pos)
+if hit_info[0][0] != -1:  # If an object is detected
+    print("Obstacle detected:", hit_info)
+
+# === Part 7: Debugging and Visualizing Paths ===
+# p.addUserDebugLine and p.addUserDebugText help visualize paths and important points.
+# Example: Draw a path for the robot to follow
+p.addUserDebugLine([0, 0, 1], [3, 3, 1], [1, 0, 0])  # Draw a red line from (0, 0, 1) to (3, 3, 1)
+p.addUserDebugText("Start", [0, 0, 1], [0, 1, 0])  # Add green text at the start position
+
+# === Part 8: Interactive Debugging Tools ===
+# Use user debug parameters (sliders, buttons) to modify simulation variables in real-time.
+slider_id = p.addUserDebugParameter("Speed", 0, 10, 5)
+force_slider = p.addUserDebugParameter("Force", 0, 100, 50)
+while True:
+    speed = p.readUserDebugParameter(slider_id)
+    force = p.readUserDebugParameter(force_slider)
+    print("Speed:", speed, "Force:", force)
+    p.stepSimulation()
+    time.sleep(1/240)
+
+# === Part 9: Saving and Recording Simulations ===
+# Save simulation states and record videos for analysis or debugging.
+state_id = p.saveState()  # Save the current state
+p.restoreState(state_id)  # Restore the saved state
+p.startStateLogging(p.STATE_LOGGING_VIDEO_MP4, "simulation_video.mp4")
+for _ in range(240):
+    p.stepSimulation()
+    time.sleep(1/240)
+p.stopStateLogging()
+
+# === Part 10: Using Constraints for Complex Simulations ===
+# Constraints allow you to link objects together, like robotic arms or moving parts.
+# Example: Create a fixed constraint between the robot and a box
+constraint_id = p.createConstraint(
+    parentBodyUniqueId=robot_id,
+    parentLinkIndex=-1,
+    childBodyUniqueId=box_id,
+    childLinkIndex=-1,
+    jointType=p.JOINT_FIXED,
+    jointAxis=[0, 0, 0],
+    parentFramePosition=[0.5, 0, 0],
+    childFramePosition=[0, 0, 0]
+)
+# Remove the constraint when no longer needed
+p.removeConstraint(constraint_id)
+
+# === Part 11: Soft Body Dynamics for Advanced Simulations ===
+# Simulate soft materials like cloth and flexible objects.
+cloth_id = p.loadSoftBody("cloth_z_up.obj", basePosition=[0, 0, 2], mass=1.0)
+p.changeSoftBodyAnchor(cloth_id, 0, robot_id, -1)  # Anchor the cloth to the robot
+
+# === Part 12: Real-Time and Headless Simulation ===
+# Use p.setRealTimeSimulation(1) for real-time interactions, or p.DIRECT mode for headless simulations.
+p.setRealTimeSimulation(1)
+while p.isConnected():
+    key_events = p.getKeyboardEvents()
+    if p.B3G_LEFT_ARROW in key_events:
+        p.applyExternalForce(robot_id, -1, [-10, 0, 0], [0, 0, 0], p.WORLD_FRAME)
+    p.stepSimulation()
+    time.sleep(1/240)
+
+# Optimize simulation performance by reducing resolution and using headless mode for batch processing.
+
+# === End of Comprehensive Tutorial ===
+
+# Disconnect from PyBullet when done
+p.disconnect()
