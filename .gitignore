@@ -1,0 +1,15 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# PyBullet logs and generated files
+*.bullet
+logs/
+
+# Virtual environment
+.venv/
+venv/
+
+# System files
+.DS_Store
