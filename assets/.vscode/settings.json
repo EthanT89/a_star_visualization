@@ -1,0 +1,9 @@
+{
+    // Other settings...
+    "urdf-visualizer.packages": {
+        "my_robot_package": "${workspaceFolder}/assets"
+    },
+    "urdf-visualizer.renderOnSave": true, // Automatically re-render on save
+    "urdf-visualizer.reRenderWhenSwitchFile": true, // Automatically re-render when switching files
+    "urdf-visualizer.backgroundColor": "#ffffff" // Optional: Set a background color
+}

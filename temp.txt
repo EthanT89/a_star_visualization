@@ -31,3 +31,89 @@
     p.setJointMotorControl2(bodyUniqueId=robot_id, jointIndex=6, controlMode=p.VELOCITY_CONTROL, targetVelocity=left_wheel_velocity)
     p.setJointMotorControl2(bodyUniqueId=robot_id, jointIndex=7, controlMode=p.VELOCITY_CONTROL, targetVelocity=left_wheel_velocity)
     """
+
+    import pybullet as p
+import pybullet_data
+import time
+import os
+
+# Connect to PyBullet and set up the simulation
+p.connect(p.GUI)
+p.setAdditionalSearchPath(pybullet_data.getDataPath())
+p.setGravity(0, 0, -9.81)
+
+# Set the path to project and assets folder
+project_path = os.path.dirname(__file__)
+assets_path = os.path.join(project_path, 'assets')
+
+# Load the plane model
+plane_id = p.loadURDF("plane.urdf")
+p.changeDynamics(plane_id, -1, lateralFriction=20.0)  # Adjust the lateralFriction value as needed
+
+# Set the path to your custom robot URDF
+robot_urdf_path = os.path.join(assets_path, "simple_robot.urdf")
+
+# Function to load the robot model
+def load_robot():
+    global robot_id
+    try:
+        # Remove the existing robot if it's already loaded
+        if 'robot_id' in globals():
+            p.removeBody(robot_id)
+        
+        # Load the robot model from the URDF file
+        robot_id = p.loadURDF(robot_urdf_path, [0, 0, 0.1])
+        print("Robot model loaded successfully")
+    except Exception as e:
+        print(f"Error loading URDF: {e}")
+
+# Load the robot initially
+load_robot()
+
+# Initialize wheel velocities
+left_wheel_velocity = 0
+right_wheel_velocity = 0
+default_speed = 15.0  # Adjust speed as necessary
+default_turn_factor = 0.7  # Adjust turning speed as necessary
+
+# Define the correct joint indices for the wheels
+front_left_wheel_joint = 0
+front_right_wheel_joint = 1
+rear_left_wheel_joint = 2
+rear_right_wheel_joint = 3
+
+# Main simulation loop
+while p.isConnected():
+    # Get keyboard events
+    keys = p.getKeyboardEvents()
+
+    # Reset velocities
+    left_wheel_velocity = 0
+    right_wheel_velocity = 0
+
+    # Check for arrow key presses and set wheel velocities
+    if p.B3G_UP_ARROW in keys and keys[p.B3G_UP_ARROW] & p.KEY_IS_DOWN:
+        left_wheel_velocity = -default_speed
+        right_wheel_velocity = -default_speed
+
+    elif p.B3G_DOWN_ARROW in keys and keys[p.B3G_DOWN_ARROW] & p.KEY_IS_DOWN:
+        left_wheel_velocity = default_speed
+        right_wheel_velocity = default_speed
+
+    elif p.B3G_LEFT_ARROW in keys and keys[p.B3G_LEFT_ARROW] & p.KEY_IS_DOWN:
+        left_wheel_velocity = default_speed * default_turn_factor  # Slow down the left wheels
+        right_wheel_velocity = -default_speed * default_turn_factor  # Speed up the right wheels
+
+    elif p.B3G_RIGHT_ARROW in keys and keys[p.B3G_RIGHT_ARROW] & p.KEY_IS_DOWN:
+        left_wheel_velocity = -default_speed * default_turn_factor  # Speed up the left wheels
+        right_wheel_velocity = default_speed * default_turn_factor  # Slow down the right wheels
+
+    # Apply velocity to the wheel joints
+    p.setJointMotorControl2(bodyUniqueId=robot_id, jointIndex=front_left_wheel_joint, controlMode=p.VELOCITY_CONTROL, targetVelocity=left_wheel_velocity)
+    p.setJointMotorControl2(bodyUniqueId=robot_id, jointIndex=rear_left_wheel_joint, controlMode=p.VELOCITY_CONTROL, targetVelocity=left_wheel_velocity)
+    p.setJointMotorControl2(bodyUniqueId=robot_id, jointIndex=front_right_wheel_joint, controlMode=p.VELOCITY_CONTROL, targetVelocity=right_wheel_velocity)
+    p.setJointMotorControl2(bodyUniqueId=robot_id, jointIndex=rear_right_wheel_joint, controlMode=p.VELOCITY_CONTROL, targetVelocity=right_wheel_velocity)
+
+    # Step the simulation
+    p.stepSimulation()
+    time.sleep(1 / 480)
