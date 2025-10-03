@@ -13,3 +13,8 @@ venv/
 
 # System files
 .DS_Store
+
+# Temporary files
+temp.txt
+*.tmp
+*_temp.py
